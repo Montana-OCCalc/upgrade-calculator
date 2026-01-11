@@ -3,117 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <title>Upgrade & Warranty Calculator</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;background:#f5f5f5}
-header{background:#0b3c5d;color:#fff;padding:12px;text-align:center}
-nav{display:flex;background:#fff;border-bottom:1px solid #ccc}
-nav button{flex:1;padding:10px;border:none;background:none;font-weight:600}
-nav button.active{color:#0b3c5d;border-bottom:3px solid #0b3c5d}
-section{display:none;padding:15px}
-section.active{display:block}
-table{border-collapse:collapse;font-size:12px}
-td{border:1px solid #ccc;padding:4px;min-width:60px}
-td:hover{background:#dfefff;cursor:pointer}
-.note{font-size:12px;color:#555}
-select,input{width:100%;padding:8px;margin-top:6px}
+body { font-family: -apple-system, BlinkMacSystemFont, Arial; margin:0; background:#f3f4f6; }
+header { background:#111827; color:white; padding:12px; text-align:center; }
+h2 { margin:5px 0; }
+.container { padding:12px; max-width:900px; margin:auto; }
+.card { background:white; border-radius:10px; padding:14px; margin-bottom:14px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+label { font-weight:600; font-size:14px; }
+input { width:100%; padding:10px; font-size:16px; margin-top:4px; }
+.toggle { display:flex; gap:10px; margin-top:6px; }
+.toggle button { flex:1; padding:12px; font-size:16px; border-radius:8px; border:2px solid #d1d5db; background:white; }
+.toggle button.active { background:#2563eb; color:white; border-color:#2563eb; }
+.pkg { text-align:center; }
+.pkg h3 { margin-bottom:4px; }
+.big { font-size:22px; font-weight:700; }
+.muted { color:#6b7280; font-size:13px; }
+.admin { display:none; }
+button.expand { width:100%; padding:12px; border-radius:8px; border:none; background:#111827; color:white; font-size:16px; }
 </style>
 </head>
+
 <body>
 
 <header>
-<h2>Upgrade & Warranty Calculator</h2>
+  <h2>Upgrade & Warranty Calculator</h2>
 </header>
 
-<nav>
-<button class="active" onclick="showTab('excel')">Excel</button>
-<button onclick="showTab('inputs')">Inputs</button>
-<button onclick="showTab('results')">Results</button>
-</nav>
+<div class="container">
 
-<section id="excel" class="active">
-<h3>Excel Upload & Mapping</h3>
-<input type="file" id="file" accept=".xlsx,.xls,.ods"><br><br>
-<select id="sheetSelect"></select>
-<div id="grid"></div>
-<p class="note">Click a cell, then choose what it represents.</p>
-</section>
+<!-- INPUT DATA -->
+<div class="card">
+<h3>Input Data</h3>
+<div class="grid">
+<div>
+<label>Perimeter Length</label>
+<input id="perimeter" type="number" value="0">
+</div>
+<div>
+<label>Valley Length</label>
+<input id="valley" type="number" value="0">
+</div>
+<div>
+<label>Number of Squares</label>
+<input id="squares" type="number" value="0">
+</div>
+<div>
+<label>Ridge Length</label>
+<input id="ridge" type="number" value="0">
+</div>
+</div>
 
-<section id="inputs">
-<h3>Inputs</h3>
-<div id="inputStatus" class="note">Mapped inputs will appear here.</div>
-</section>
+<label>Slope Pitch Tier</label>
+<div class="toggle">
+<button onclick="setTier(1)">Tier 1</button>
+<button onclick="setTier(2)">Tier 2</button>
+<button onclick="setTier(3)">Tier 3</button>
+</div>
 
-<section id="results">
-<h3>Results</h3>
-<div class="note">Mapped result cells will be read here.</div>
-</section>
+<label>Ridge Vent Upgrade</label>
+<div class="toggle">
+<button onclick="setYN('ridgeVent',true)">YES</button>
+<button onclick="setYN('ridgeVent',false)">NO</button>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script>
-let workbook;
-let mappings = JSON.parse(localStorage.getItem('cellMappings')||'{}');
+<label>Ice & Water Barrier Upgrade</label>
+<div class="toggle">
+<button onclick="setYN('iceWater',true)">YES</button>
+<button onclick="setYN('iceWater',false)">NO</button>
+</div>
 
-const fields = [
- 'Perimeter Length',
- 'Valley Length',
- 'Number of Squares',
- 'Ridge Length',
- 'Ridge Vent Upgrade',
- 'Ice & Water Barrier Upgrade',
- 'Slope Pitch Tier',
- 'Shingle Upgrade'
-];
+<label>Shingle Upgrade</label>
+<div class="toggle">
+<button onclick="setYN('shingle',true)">YES</button>
+<button onclick="setYN('shingle',false)">NO</button>
+</div>
+</div>
 
-function showTab(id){
- document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
- document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
- document.getElementById(id).classList.add('active');
- event.target.classList.add('active');
-}
-
-document.getElementById('file').addEventListener('change', e=>{
- const reader = new FileReader();
- reader.onload = evt=>{
-  const data = new Uint8Array(evt.target.result);
-  workbook = XLSX.read(data,{type:'array'});
-  const sel=document.getElementById('sheetSelect');
-  sel.innerHTML='';
-  workbook.SheetNames.forEach(n=>{
-    const o=document.createElement('option');
-    o.value=n;o.text=n;sel.appendChild(o);
-  });
-  loadSheet(workbook.SheetNames[0]);
- };
- reader.readAsArrayBuffer(e.target.files[0]);
-});
-
-document.getElementById('sheetSelect').addEventListener('change',e=>{
- loadSheet(e.target.value);
-});
-
-function loadSheet(name){
- const sheet=workbook.Sheets[name];
- const html=XLSX.utils.sheet_to_html(sheet,{editable:false});
- const grid=document.getElementById('grid');
- grid.innerHTML=html;
- grid.querySelectorAll('td').forEach(td=>{
-  td.onclick=()=>mapCell(td.getAttribute('id'));
- });
-}
-
-function mapCell(cell){
- const choice=prompt(
-  'Map cell '+cell+' to one of these:\n\n'+fields.join('\n')
- );
- if(fields.includes(choice)){
-  mappings[choice]=cell;
-  localStorage.setItem('cellMappings',JSON.stringify(mappings));
-  document.getElementById('inputStatus').innerText=
-    'Mapped fields: '+Object.keys(mappings).join(', ');
- }
-}
-</script>
-
-</body>
-</html>
+<!-- RESULTS -->
+<div class="card">
+<h3>Totals
