@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Upgrade & Warranty Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background:#f4f4f4; }
+header { background:#1f2937; color:white; padding:10px; text-align:center; }
+nav { display:flex; flex-wrap:wrap; background:#374151; }
+nav button { flex:1; padding:10px; border:none; background:#374151; color:white; cursor:pointer; }
+nav button.active { background:#2563eb; }
+section { display:none; padding:15px; }
+section.active { display:block; }
+.card { background:white; padding:15px; margin-bottom:10px; border-radius:6px; }
+label { display:block; margin-top:8px; font-weight:bold; }
+input, select { width:100%; padding:6px; margin-top:4px; }
+.toggle button { width:48%; padding:8px; margin-top:6px; }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td { border:1px solid #ccc; padding:6px; text-align:right; }
+th { background:#e5e7eb; }
+.logo { max-height:60px; display:block; margin:auto; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <img id="logo" class="logo">
+  <input type="file" accept="image/*" onchange="loadLogo(event)">
+  <h2>Upgrade & Warranty Calculator</h2>
+</header>
+
+<nav>
+  <button onclick="showTab(0)" class="active">Input Data</button>
+  <button onclick="showTab(1)">Upgrade Calculator</button>
+  <button onclick="showTab(2)">Warranty Calculator</button>
+  <button onclick="showTab(3)">Totals</button>
+  <button onclick="showTab(4)">Pricing</button>
+</nav>
+
+<section class="active">
+<div class="card">
+<label>Perimeter Length</label><input id="perimeter" type="number" value="0">
+<label>Valley Length</label><input id="valley" type="number" value="0">
+<label>Number of Squares</label><input id="squares" type="number" value="0">
+<label>Ridge Length</label><input id="ridge" type="number" value="0">
+
+<label>Slope Pitch Tier</label>
+<select id="tier">
+<option value="1">Tier 1</option>
+<option value="2">Tier 2</option>
+<option value="3">Tier 3</option>
+</select>
+
+<label>Ridge Vent Upgrade</label>
+<div class="toggle">
+<button onclick="setYN('ridgeVent',true)">Y</button>
+<button onclick="setYN('ridgeVent',false)">N</button>
+</div>
+
+<label>Ice & Water Barrier Upgrade</label>
+<div class="toggle">
+<button onclick="setYN('iceWater',true)">Y</button>
+<button onclick="setYN('iceWater',false)">N</button>
+</div>
+
+<label>Shingle Upgrade</label>
+<div class="toggle">
+<button onclick="setYN('shingle',true)">Y</button>
+<button onclick="setYN('shingle',false)">N</button>
+</div>
+</div>
+</section>
+
+<section>
+<div class="card">
+<table>
+<tr><th>Package</th><th>Upgrade Cost</th></tr>
+<tr><td>Oakridge</td><td id="uOak">0</td></tr>
+<tr><td>Duration</td><td id="uDur">0</td></tr>
+<tr><td>Duration Flex</td><td id="uFlex">0</td></tr>
+</table>
+</div>
+</section>
+
+<section>
+<div class="card">
+<table>
+<tr><th>Package</th><th>Warranty</th></tr>
+<tr><td>Oakridge</td><td id="wOak">0</td></tr>
+<tr><td>Duration</td><td id="wDur">0</td></tr>
+<tr><td>Duration Flex</td><td id="wFlex">0</td></tr>
+</table>
+</div>
+</section>
+
+<section>
+<div class="card">
+<table>
+<tr><th>Package</th><th>Total</th></tr>
+<tr><td>Oakridge</td><td id="tOak">0</td></tr>
+<tr><td>Duration</td><td id="tDur">0</td></tr>
+<tr><td>Duration Flex</td><td id="tFlex">0</td></tr>
+</table>
+</div>
+</section>
+
+<section>
+<div class="card">
+<h4>Pricing Settings</h4>
+<label>Ridge Vent $ / LF</label><input id="ridgePrice" value="5">
+<label>Ice & Water $ / LF</label><input id="icePrice" value="6">
+
+<h4>Shingle Prices (Tier 1 / 2 / 3)</h4>
+<label>Oakridge</label><input id="oak" value="20,25,30">
+<label>Duration</label><input id="dur" value="42.5,68.5,85">
+<label>Duration Flex</label><input id="flex" value="124,157,188">
+
+<h4>Warranty $ / SQ</h4>
+<label>Oakridge</label><input id="wOakP" value="10">
+<label>Duration</label><input id="wDurP" value="12">
+<label>Duration Flex</label><input id="wFlexP" value="15">
+</div>
+</section>
+
+<script>
+let state={ridgeVent:false,iceWater:false,shingle:false};
+
+function showTab(i){
+document.querySelectorAll('section').forEach((s,n)=>s.classList.toggle('active',n===i));
+document.querySelectorAll('nav button').forEach((b,n)=>b.classList.toggle('active',n===i));
+}
+
+function setYN(k,v){state[k]=v;calc();}
+
+function loadLogo(e){
+document.getElementById('logo').src=URL.createObjectURL(e.target.files[0]);
+}
+
+function calc(){
+let sq=+squares.value, tier=+tier.value-1;
+let ridgeCost=state.ridgeVent?ridge.value*ridgePrice.value:0;
+let iceCost=state.iceWater?(+perimeter.value+ +valley.value)*icePrice.value:0;
+
+function shingle(val){if(!state.shingle)return 0;return sq*val.split(',')[tier];}
+function warranty(val){let base=sq*val;return state.iceWater?base*0.9:base;}
+
+let oakU=shingle(oak.value)+ridgeCost+iceCost;
+let durU=shingle(dur.value)+ridgeCost+iceCost;
+let flexU=shingle(flex.value)+ridgeCost+iceCost;
+
+uOak.textContent=oakU.toFixed(2);
+uDur.textContent=durU.toFixed(2);
+uFlex.textContent=flexU.toFixed(2);
+
+let oakW=warranty(wOakP.value);
+let durW=warranty(wDurP.value);
+let flexW=warranty(wFlexP.value);
+
+wOak.textContent=oakW.toFixed(2);
+wDur.textContent=durW.toFixed(2);
+wFlex.textContent=flexW.toFixed(2);
+
+tOak.textContent=(oakU+oakW).toFixed(2);
+tDur.textContent=(durU+durW).toFixed(2);
+tFlex.textContent=(flexU+flexW).toFixed(2);
+}
+
+document.querySelectorAll('input,select').forEach(i=>i.oninput=calc);
+calc();
+</script>
+
+</body>
+</html>
